@@ -1,0 +1,86 @@
+USE [VrindiAttendance]
+GO
+/****** Object:  StoredProcedure [dbo].[sp_insertStoreUserEntry]    Script Date: 10/21/2015 18:06:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Pankaj
+-- Create date: 2012-01-13
+-- Description: Fetches latest consumer info from all the orders made.
+-- =============================================
+ALTER PROCEDURE [dbo].[sp_insertStoreUserEntry]
+     @MasterAccountStoreID uniqueidentifier
+	,@StoreUserId uniqueidentifier
+	,@EntryType VARCHAR(20)   
+	,@EntryDateTime DateTime
+	,@EntryDescription VARCHAR(200)
+	,@InsUpdUser VARCHAR(200)  
+	,@InsUpdApplication VARCHAR(200)  
+	,@InsUpdDateTime DateTime
+	
+	
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from interfering with SELECT statements.
+	--SET NOCOUNT ON;
+	 DECLARE  @tmpEntryDateTime datetime, 
+			  @totalBreakHours  numeric,
+			  @totalhourswork   numeric
+            select top 1 @tmpEntryDateTime=entryDateTime,@totalhourswork=totalhourswork,@totalBreakHours=totalBreakHours from wt_Store_User_Entry where Datediff(day,entryDateTime,@EntryDateTime)=0 and user_id=@StoreUserId and store_id=@MasterAccountStoreID order by entryDateTime desc
+			
+		
+		if @tmpEntryDateTime is null 
+		Begin 
+			set @tmpEntryDateTime=@EntryDateTime;
+			--print '@tmpEntryDateTime is null'
+		end
+		
+		if @totalhourswork is null 
+		Begin 
+			set @totalhourswork=0;
+			--print '@totalhourswork is null'
+		end
+		
+		if @totalBreakHours is null 
+		Begin 
+			set @totalBreakHours=0;
+			--print '@totalBreakHours is null'
+		end
+	   
+	    if @EntryType='DB'
+		Begin
+			set @totalhourswork=0;
+			set @totalBreakHours=0;
+		END
+		
+		--print 'Entry Time '+Convert(varchar,@tmpEntryDateTime)
+		--print 'Total Hours '+Convert(varchar,@totalhourswork)
+		--print 'Total Break '+Convert(varchar,@totalBreakHours)
+		
+		if @EntryType='BE'
+		Begin
+		    --print 'Before Calculating Inside BE, Total Minutes '+Convert(varchar,@totalhourswork)
+			set @totalhourswork=DateDiff(Second,@tmpEntryDateTime,@EntryDateTime)+@totalhourswork;
+			--print 'After Calculating Inside BE, Total Minutes '+Convert(varchar,@totalhourswork)
+			
+		END
+		if @EntryType='BEnd'
+		Begin
+			--print 'Before Calculating Inside BE, Total Minutes '+Convert(varchar,@totalhourswork)
+			set @totalBreakHours= DateDiff(Second,@tmpEntryDateTime,@EntryDateTime)+@totalBreakHours;
+			--print 'After Calculating Inside BE, Total Minutes '+Convert(varchar,@totalhourswork)
+			
+		END
+		if @EntryType='DE'
+		Begin
+			--print 'Before Calculating Inside BE, Total Minutes '+Convert(varchar,@totalhourswork)
+			set @totalhourswork=DateDiff(Second,@tmpEntryDateTime,@EntryDateTime)+@totalhourswork;
+			--print 'After Calculating Inside BE, Total Minutes '+Convert(varchar,@totalhourswork)
+		
+			
+		END
+	  --print 'Last EntryDateTime '+Convert(varchar,@tmpEntryDateTime)+', CurrentEntryTime'+Convert(varchar,@EntryDateTime)+', Total hours '+Convert(varchar, @totalhourswork)+',, totalBreakHours '+Convert(varchar, @totalBreakHours)
+	    insert into wt_Store_User_Entry(store_id,user_id,entryType,entryDescription,entryDateTime,totalHoursWork,totalBreakHours,ins_upd_datetime,ins_upd_user,ins_upd_application) values (@MasterAccountStoreID,@StoreUserId,@EntryType,@EntryDescription,@EntryDateTime,@totalhourswork,@totalBreakHours,@InsUpdDateTime,@InsUpdUser,@InsUpdApplication)
+	END
