@@ -27,3 +27,43 @@ group by wt_Store_User_Entry.user_id,wt_Store_User_Entry.store_id,wt_storeEmploy
 
 
 END
+user_id,wt_Store_User_Entry.store_id
+ 
+END
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- =============================================
+ALTER PROCEDURE [dbo].[spReport_get_StoreUserEntryDetails]
+     @MasterAccountStoreID uniqueidentifier
+	,@date DateTime
+AS
+BEGIN
+
+
+select wt_storeEmployee.user_fullname as "EmployeeName",CAST(lastTenDaysUserEntry.entryDateTime AS DATE) as "EntryDate",Max(lastTenDaysUserEntry.totalBreakHours)as "TotalHoursWork",MAX(lastTenDaysUserEntry.totalHoursWork) as "TotalBreakHours" from wt_storeEmployee
+left outer join 
+(
+Select wt_Store_User_Entry.user_id,wt_Store_User_Entry.entryDateTime,MAX(wt_Store_User_Entry.totalHoursWork) as "totalHoursWork",MAX(wt_Store_User_Entry.totalBreakHours) as "totalBreakHours"
+from wt_Store_User_Entry 
+where wt_Store_User_Entry.store_id=@MasterAccountStoreID and 
+entryDateTime>=DATEADD(Day,-10,@date)
+group by wt_Store_User_Entry.store_id,wt_Store_User_Entry.user_id,wt_Store_User_Entry.entryDateTime
+) lastTenDaysUserEntry
+on wt_storeEmployee.user_id=lastTenDaysUserEntry.user_id
+group by wt_storeEmployee.user_id,wt_storeEmployee.user_fullname,CAST(lastTenDaysUserEntry.entryDateTime AS DATE)
+order by wt_storeEmployee.user_fullname
+ --group by wt_Store_User_Entry.user_id,wt_Store_User_Entry.store_id
+ 
+END
